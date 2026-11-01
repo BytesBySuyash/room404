@@ -8,7 +8,14 @@ export type IconName =
   | "installer"
   | "help"
   | "sound"
-  | "windows";
+  | "windows"
+  | "word"
+  | "paint"
+  | "calculator"
+  | "mail"
+  | "minesweeper"
+  | "cards"
+  | "pinball";
 export function Icon({ name, size = 32 }: { name: IconName; size?: number }) {
   return (
     <svg
@@ -19,6 +26,92 @@ export function Icon({ name, size = 32 }: { name: IconName; size?: number }) {
       aria-hidden="true"
       shapeRendering="crispEdges"
     >
+      {name === "word" && (
+        <>
+          <path fill="#222" d="M8 2h15l6 6v22H8z" />
+          <path fill="#fff" d="M9 3h13v6h6v20H9z" />
+          <path
+            fill="#aaa"
+            d="M23 3v5h5zM12 12h13v1H12zM12 16h13v1H12zM12 20h13v1H12zM12 24h9v1h-9z"
+          />
+          <path fill="#003e91" d="M2 11h18v18H2z" />
+          <path
+            fill="#fff"
+            d="M4 14h3l2 9 2-7h2l2 7 2-9h2l-3 12h-3l-1-6-2 6H7z"
+          />
+        </>
+      )}
+      {name === "paint" && (
+        <>
+          <path fill="#333" d="M5 4h19v26H5z" />
+          <path fill="#eee" d="M6 5h17v24H6z" />
+          <path fill="#b88b42" d="M9 2h11v5H9z" />
+          <path fill="#eee5cf" d="M10 3h9v2h-9z" />
+          <path fill="#eb4d41" d="M8 11h4v4H8z" />
+          <path fill="#2974c9" d="M14 11h4v4h-4z" />
+          <path fill="#efc826" d="M8 18h4v4H8z" />
+          <path fill="#26924b" d="M14 18h4v4h-4z" />
+          <path fill="#333" d="M26 1h4v5l-10 19-5 4 1-7z" />
+          <path fill="#e6af55" d="M26 3h2v3l-9 16h-2z" />
+          <path fill="#692e1e" d="M17 23l2 1-3 3z" />
+        </>
+      )}
+      {name === "calculator" && (
+        <>
+          <path fill="#111" d="M5 1h23v30H5z" />
+          <path fill="#c0c0c0" d="M6 2h21v28H6z" />
+          <path fill="#2c4140" d="M8 5h17v7H8z" />
+          <path fill="#bcceaa" d="M9 6h15v5H9z" />
+          <path
+            fill="#777"
+            d="M8 15h4v3H8zM14 15h4v3h-4zM20 15h4v3h-4zM8 21h4v3H8zM14 21h4v3h-4z"
+          />
+          <path fill="#b93030" d="M20 21h4v6h-4z" />
+          <path fill="#fff" d="M8 26h10v2H8z" />
+        </>
+      )}
+      {name === "mail" && (
+        <>
+          <path fill="#444" d="M2 8h28v20H2z" />
+          <path fill="#f7e9bf" d="M3 9h26v18H3z" />
+          <path
+            fill="none"
+            stroke="#a68a49"
+            d="M3 10l13 10 13-10M3 27l9-11M29 27l-9-11"
+          />
+          <path fill="#064eae" d="M17 1h8v4h5v6h-5v4h-8v-4h5V5h-5z" />
+        </>
+      )}
+      {name === "minesweeper" && (
+        <>
+          <path fill="#bbb" d="M1 1h30v30H1z" />
+          <path
+            fill="#111"
+            d="M14 5h4v5h5v5h5v4h-5v5h-5v5h-4v-5H9v-5H4v-4h5v-5h5zM6 6h3v3H6zM24 6h3v3h-3zM6 25h3v3H6zM24 25h3v3h-3z"
+          />
+          <path fill="#fff" d="M12 12h5v5h-5z" />
+          <path fill="#888" d="M18 18h4v4h-4z" />
+        </>
+      )}
+      {name === "cards" && (
+        <>
+          <path fill="#333" d="M2 4h19v25H2z" />
+          <path fill="#fff" d="M3 5h17v23H3z" />
+          <path fill="#000080" d="M5 7h13v19H5z" />
+          <path fill="#333" d="M11 1h19v27H11z" />
+          <path fill="#fff" d="M12 2h17v24H12z" />
+          <path fill="#a90000" d="M14 5h3v4h-3zM17 11h3v3h2v-3h3v4l-4 6-4-6z" />
+        </>
+      )}
+      {name === "pinball" && (
+        <>
+          <path fill="#181a41" d="M5 1h23v30H5z" />
+          <path fill="#605aa0" d="M7 3h19v26H7z" />
+          <path fill="#e8c942" d="M10 8h5v5h-5zM19 14h5v5h-5z" />
+          <path fill="#ce4a8a" d="M9 25l7-4 2 2-7 4zM24 25l-6-4-2 2 6 4z" />
+          <path fill="#fff" d="M18 5h4v4h-4z" />
+        </>
+      )}
       {name === "computer" && (
         <>
           <path fill="#111" d="M3 2h25v20H17v4h8v3H6v-3h8v-4H3z" />

@@ -31,15 +31,39 @@ npm run preview
 - Explorer with shared folders, Back/Up navigation, folder tree, address, and file counts.
 - Editable Notepad, Save, Ctrl+S, unsaved-change marker, Save/Discard/Cancel protection, and saved content after reopening or refreshing.
 - Local Internet Explorer: homepage, search, history, Back/Forward, editable address, local errors, and fictional downloads.
+- A functional 1998-style Google search recreation, still routed entirely through the local simulated web.
+- Microsoft Word-style editing with font, size, bold/italic/underline, paragraph alignment, saved documents, and unsaved-change protection.
+- Paint with pencil, eraser, line, rectangle, brush size, a 16-color palette, Undo, and drawings automatically saved into Pictures.
+- Standard Calculator with arithmetic, percentage, square root, reciprocal, memory, and keyboard input.
+- Outlook Express with personal inbox messages, Reply, compose, and local-only Sent Items.
+- Playable Minesweeper, draw-one Klondike Solitaire with legal moves and Undo, and an original 2D Pinball table with flipper physics.
+- Historical JPEGs extracted from the supplied PDF, a family photo, a local PDF clipping/reader, and a media player.
+- Fourteen original retro system sounds, a startup chime, shutdown, mail, window events, errors, recycling, and dial-up modem audio. A Sounds control panel provides event previews, volume, and mute.
 - Cancellable RAM installer, repeatable installation, one stable editable receipt.
 - Recycle Bin restore into My Documents, confession, image viewer with Fit/Actual Size, and the final project reveal.
 - Versioned persistence, malformed-storage recovery, storage-unavailable notice, and a confirmed reset limited to this application.
 
-Desktop icons and Explorer items open with a double-click, Enter, or a single touch tap. All illustrations are original SVGs bundled in `public/art/`. `architecture.bmp` is intentionally a fictional file backed by an SVG illustration.
+Desktop icons and Explorer items open with a double-click, Enter, or a single touch tap. Original SVGs are bundled in `public/art/`; reference images extracted from the user-supplied PDF are in `public/files/`. `architecture.bmp` is intentionally a fictional file backed by an SVG illustration. See [ASSETS.md](ASSETS.md) for provenance and the distinction between original assets and supplied reference images.
+
+## Requested folders and startup sound
+
+| Virtual location              | Contents                                                                                                                                    |
+| ----------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------- |
+| `C:\My Documents\1998`        | `titanic_1997.jpg`, `world_cup_1998.jpg`, `most_wanted_list.jpg`, `news_clipping_2001.jpg` — the exact four reference images                |
+| `C:\My Documents`             | World Cup image, WTC news photograph, `9-11-attack-planning.pdf` historical clipping, project files, a Word letter, and music catalog entry |
+| `C:\My Documents\My Pictures` | `family_memory.jpg`, extracted from the supplied family photograph                                                                          |
+| `C:\My Documents\Pictures`    | Original hostel illustration, architecture reveal, and saved Paint drawings                                                                 |
+| `C:\My Documents\Mail`        | Personal messages and locally saved sent mail                                                                                               |
+| `C:\Games`                    | Playable Minesweeper, Solitaire, Pinball; Counter-Strike screenshot/reference folder and GTA III collection notes                           |
+| `C:\Windows\Media`            | The bundled system WAV files, openable in the media player                                                                                  |
+
+System sounds now default **on**, with a visible mute choice before Power on. The power button unlocks browser audio, and the startup chime plays when boot completes (including Skip). Previously chosen explicit mute settings are preserved. To hear it on an already resumed desktop, double-click **Sounds**, leave **Windows startup** selected, and press **Play sound**. The same panel is available at **Start → Settings → Sounds…**. Its volume/mute also controls the local media player.
+
+The sounds are original period-inspired recordings generated locally, not Microsoft audio recordings. The commercial Counter-Strike/GTA III executables and Eminem recording were not supplied and are not bundled. The named MP3 is clearly a catalog entry; its player offers an original hostel instrumental instead. All enabled game launchers run the implemented browser games.
 
 ## 2–3 minute judge demonstration
 
-Before presenting: use **Start → Reset Experience** and confirm, then leave the power screen ready. Sound and CRT are optional and start off.
+Before presenting: use **Start → Reset Experience** and confirm, then leave the power screen ready. Sound starts on; CRT starts off. Set a comfortable volume in Sounds before the presentation if needed.
 
 | Time      | Action                                                                                                                                                     | Presentation cue                                                              |
 | --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
@@ -54,13 +78,15 @@ For independent exploration, point judges to **Start → Help**. The story can b
 
 ## Verification
 
-`npm test` runs component integration tests with React Testing Library and jsdom. They exercise power/skip, saving/reopening/persistence, dirty-document protection, multiple windows and taskbar/maximize state, browser navigation and errors, RAM cancellation/completion/receipt, restoration and the final reveal, shutdown/restart/reset, unrelated-storage preservation, malformed storage, muted defaults, and narrow viewport window sizing.
+`npm test` runs component integration tests with React Testing Library and jsdom, plus game-rule and asset checks. The 17 checks cover the original story and persistence, exact archive images, Word save/format/reopen, Calculator, local mail, sound preferences and WAV scheduling/muting, game launching, legal Solitaire moves/card conservation, safe Minesweeper reveal, and real local asset bytes.
 
 These are **component tests, not real-browser layout tests**. Computer Use could not inspect Chrome because it could not verify the current browser URL. Drag/resize pointer geometry, rendered visual quality, mobile touch behavior, actual audio playback, and real-browser focus behavior still need a manual pass. The production preview was separately checked for HTTP 200. See `VERIFICATION.md` for the final recorded results.
 
 ## Hackathon brief and scope
 
 The seven-page Gandhi Hackathon PDF is the source for organizer requirements. It prioritizes entertaining discoveries, creativity, functionality, visual authenticity, and cleanliness. Its application/game examples are optional. The attached implementation brief supplies the original Room 404 narrative and the narrower frontend scope; its 90-minute budget is a build constraint, not an organizer deadline. No backend, AI, authentication, mandatory technology, or numerical judging weights were inferred from the PDF.
+
+The user's follow-up explicitly expanded the initial scope to include the pictured applications, games, historical/personal images, and system sounds. Those additions preserve the original mystery and remain frontend-only and local.
 
 ## Public submission
 
@@ -81,9 +107,12 @@ The build uses relative asset paths so it can run from a repository subpath. Oth
 - `src/store.tsx`: shared reducer, central file dispatcher, persistence, dialogs, and optional synthesized audio.
 - `src/App.tsx`: boot/shutdown, desktop, shared window frame, Start menu, taskbar, focus-managed system dialog.
 - `src/apps.tsx`: Explorer, Notepad, browser/local pages, Recycle Bin, image viewer, installer, welcome, and hints.
+- `src/accessories.tsx`: Word, Paint, Calculator, Outlook Express, PDF reader, media player, and Sounds control panel.
+- `src/games.tsx`, `src/gameLogic.ts`: playable games and pure Minesweeper/Solitaire rules.
+- `src/sound.ts`, `scripts/generate_media.py`: user-gesture-unlocked sound engine and reproducible original audio generation.
 - `src/files.ts`: stable virtual file IDs and original fictional content.
 - `src/icons.tsx`, `public/art/`: original vector pixel-style icons, hostel illustration, and project schematic.
-- `src/style.css`: layout, original period-inspired treatments, responsive rules, and optional CRT overlay.
+- `src/style.css`, `src/expanded.css`: shared retro styling, applications, games, responsive rules, and optional CRT overlay.
 - [React](https://react.dev/) and [Vite](https://vite.dev/) supply the frontend runtime and build tooling.
 - [98.css](https://github.com/jdan/98.css), MIT: base period controls and bundled MS Sans Serif recreation; see its package for license and font credits.
 - [react-rnd](https://github.com/bokuweb/react-rnd), MIT: drag/resize primitive, including its dependency tree.

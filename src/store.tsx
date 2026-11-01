@@ -3,13 +3,14 @@ import {
   useContext,
   useEffect,
   useReducer,
-  useRef,
   useState,
 } from "react";
 import type { ReactNode } from "react";
 import { folderPath, ramFile, receipt, seedFiles } from "./files";
 import type { VFile } from "./files";
 import type { IconName } from "./icons";
+import { systemSounds } from "./sound";
+import type { SoundName } from "./sound";
 
 export const STORAGE_KEY = "room404.experience.v1";
 export type AppKind =
@@ -20,7 +21,17 @@ export type AppKind =
   | "image"
   | "installer"
   | "welcome"
-  | "hint";
+  | "hint"
+  | "word"
+  | "paint"
+  | "calculator"
+  | "mail"
+  | "pdf"
+  | "media"
+  | "sounds"
+  | "minesweeper"
+  | "solitaire"
+  | "pinball";
 export interface Win {
   id: string;
   app: AppKind;
@@ -37,11 +48,29 @@ export interface Win {
   min: boolean;
   max: boolean;
 }
+const EMPTY_DOCUMENT = JSON.stringify({
+  text: "",
+  font: "Times New Roman",
+  size: 16,
+  bold: false,
+  italic: false,
+  underline: false,
+  align: "left",
+});
+export function windowIsDirty(w: Win, files: VFile[]) {
+  return (
+    ["notepad", "word"].includes(w.app) &&
+    (w.draft || "") !==
+      (files.find((f) => f.id === w.fileId)?.content ||
+        (w.app === "word" ? EMPTY_DOCUMENT : ""))
+  );
+}
 interface State {
   files: VFile[];
   windows: Win[];
   topZ: number;
   sound: boolean;
+  volume: number;
   crt: boolean;
   discoveries: string[];
   resumed: boolean;
@@ -55,13 +84,15 @@ type Action =
   | { type: "file"; file: VFile }
   | { type: "discover"; id: string }
   | { type: "settings"; key: "sound" | "crt"; value: boolean }
+  | { type: "settings"; key: "volume"; value: number }
   | { type: "reset" };
 function initialState(): State {
   const base: State = {
     files: seedFiles.map((f) => ({ ...f })),
     windows: [],
     topZ: 10,
-    sound: false,
+    sound: true,
+    volume: 0.5,
     crt: false,
     discoveries: [],
     resumed: false,
@@ -70,7 +101,11 @@ function initialState(): State {
     const data = JSON.parse(localStorage.getItem(STORAGE_KEY) || "null");
     if (data?.version !== 1) return base;
     base.resumed = data.resumed === true;
-    base.sound = data.sound === true;
+    base.sound = data.soundChoiceMade === true ? data.sound === true : true;
+    base.volume =
+      typeof data.volume === "number"
+        ? Math.max(0, Math.min(1, data.volume))
+        : 0.5;
     base.crt = data.crt === true;
     if (Array.isArray(data.discoveries))
       base.discoveries = data.discoveries.filter(
@@ -78,7 +113,8 @@ function initialState(): State {
       );
     if (data.text && typeof data.text === "object")
       base.files = base.files.map((f) =>
-        f.type === "text" && typeof data.text[f.id] === "string"
+        ["text", "document", "mail"].includes(f.type) &&
+        typeof data.text[f.id] === "string"
           ? { ...f, content: data.text[f.id].slice(0, 100000) }
           : f,
       );
@@ -95,6 +131,36 @@ function initialState(): State {
             ? data.text[receipt.id].slice(0, 100000)
             : receipt.content,
       });
+    if (Array.isArray(data.userFiles))
+      for (const f of data.userFiles) {
+        if (
+          !f ||
+          typeof f.id !== "string" ||
+          !f.id.startsWith("user-") ||
+          base.files.some((x) => x.id === f.id) ||
+          typeof f.name !== "string" ||
+          !["docs", "pictures", "mail-folder"].includes(f.parentId)
+        )
+          continue;
+        if (!["text", "document", "mail", "image"].includes(f.type)) continue;
+        if (
+          f.type === "image" &&
+          (typeof f.asset !== "string" ||
+            !f.asset.startsWith("data:image/png;base64,") ||
+            f.asset.length > 400000)
+        )
+          continue;
+        base.files.push({
+          id: f.id,
+          parentId: f.parentId,
+          name: f.name.slice(0, 80),
+          type: f.type,
+          content:
+            typeof f.content === "string" ? f.content.slice(0, 100000) : "",
+          asset: f.type === "image" ? f.asset : undefined,
+          modifiedAt: "2002-10-31",
+        });
+      }
   } catch {
     /* Unavailable or malformed storage starts a fresh machine. */
   }
@@ -158,7 +224,8 @@ function reducer(s: State, a: Action): State {
         files: seedFiles.map((f) => ({ ...f })),
         windows: [],
         topZ: 10,
-        sound: false,
+        sound: true,
+        volume: 0.5,
         crt: false,
         discoveries: [],
         resumed: false,
@@ -189,7 +256,8 @@ interface OSContext {
   hint: () => void;
   reset: () => void;
   shutdown: () => void;
-  beep: (kind?: "startup" | "click" | "done") => void;
+  beep: (kind?: SoundName) => void;
+  unlockAudio: () => void;
   storageOK: boolean;
 }
 const OS = createContext<OSContext | null>(null);
@@ -199,13 +267,44 @@ export function useOS() {
   return c;
 }
 export function OSProvider({ children }: { children: ReactNode }) {
-  const [state, dispatch] = useReducer(reducer, undefined, initialState);
+  const [state, rawDispatch] = useReducer(reducer, undefined, initialState);
+  function dispatch(a: Action) {
+    if (a.type === "settings" && a.key === "sound") {
+      systemSounds.setPreferences(a.value, state.volume);
+      if (a.value) void systemSounds.play("notify");
+    } else if (a.type === "settings" && a.key === "volume")
+      systemSounds.setPreferences(state.sound, a.value);
+    else if (
+      a.type === "open" &&
+      !state.windows.some((w) => w.id === a.window.id)
+    )
+      void systemSounds.play("open");
+    else if (a.type === "close") void systemSounds.play("close");
+    else if (a.type === "patch" && a.patch.min)
+      void systemSounds.play("minimize");
+    else if (a.type === "patch" && a.patch.max !== undefined)
+      void systemSounds.play(a.patch.max ? "maximize" : "minimize");
+    else if (a.type === "save") void systemSounds.play("click");
+    rawDispatch(a);
+  }
   const [phase, setPhase] = useState<"power" | "boot" | "desktop" | "off">(
     state.resumed ? "desktop" : "power",
   );
   const [dialog, setDialog] = useState<DialogConfig | null>(null);
   const [storageOK, setStorageOK] = useState(true);
-  const audio = useRef<AudioContext | null>(null);
+  useEffect(() => {
+    systemSounds.setPreferences(state.sound, state.volume);
+  }, [state.sound, state.volume]);
+  useEffect(() => {
+    const unlock = () => systemSounds.unlock();
+    document.addEventListener("pointerdown", unlock, { capture: true });
+    document.addEventListener("keydown", unlock, { capture: true });
+    return () => {
+      document.removeEventListener("pointerdown", unlock, { capture: true });
+      document.removeEventListener("keydown", unlock, { capture: true });
+      systemSounds.stop();
+    };
+  }, []);
   useEffect(() => {
     try {
       localStorage.setItem(
@@ -214,16 +313,19 @@ export function OSProvider({ children }: { children: ReactNode }) {
           version: 1,
           resumed: phase === "desktop" || state.resumed,
           sound: state.sound,
+          soundChoiceMade: true,
+          volume: state.volume,
           crt: state.crt,
           discoveries: state.discoveries,
           text: Object.fromEntries(
             state.files
-              .filter((f) => f.type === "text")
+              .filter((f) => ["text", "document", "mail"].includes(f.type))
               .map((f) => [f.id, f.content]),
           ),
           restored: !state.files.find((f) => f.id === "confession")?.deleted,
           ram: state.files.some((f) => f.id === "ram-exe"),
           receipt: state.files.some((f) => f.id === "ram-receipt"),
+          userFiles: state.files.filter((f) => f.id.startsWith("user-")),
         }),
       );
       setStorageOK(true);
@@ -233,40 +335,14 @@ export function OSProvider({ children }: { children: ReactNode }) {
   }, [
     state.files,
     state.sound,
+    state.volume,
     state.crt,
     state.discoveries,
     state.resumed,
     phase,
   ]);
-  function beep(kind: "startup" | "click" | "done" = "click") {
-    if (!state.sound) return;
-    try {
-      const ctx = audio.current ?? (audio.current = new AudioContext());
-      void ctx.resume();
-      const notes =
-        kind === "startup"
-          ? [262, 330, 392, 523]
-          : kind === "done"
-            ? [523, 659]
-            : [440];
-      notes.forEach((hz, i) => {
-        const o = ctx.createOscillator(),
-          g = ctx.createGain();
-        o.type = "sine";
-        o.frequency.value = hz;
-        g.gain.setValueAtTime(0.035, ctx.currentTime + i * 0.12);
-        g.gain.exponentialRampToValueAtTime(
-          0.001,
-          ctx.currentTime + i * 0.12 + 0.18,
-        );
-        o.connect(g);
-        g.connect(ctx.destination);
-        o.start(ctx.currentTime + i * 0.12);
-        o.stop(ctx.currentTime + i * 0.12 + 0.2);
-      });
-    } catch {
-      /* Audio is optional. */
-    }
+  function beep(kind: SoundName = "click") {
+    void systemSounds.play(kind);
   }
   function openApp(
     app: AppKind,
@@ -290,12 +366,26 @@ export function OSProvider({ children }: { children: ReactNode }) {
       installer: ["Download More RAM Setup", "installer", 480, 360],
       welcome: ["Welcome to Room 404", "computer", 470, 345],
       hint: ["Help — Where should I look?", "help", 450, 310],
+      word: [`${f?.name || "Document1"} - Microsoft Word`, "word", 760, 565],
+      paint: [`${f?.name || "Untitled"} - Paint`, "paint", 760, 565],
+      calculator: ["Calculator", "calculator", 340, 390],
+      mail: ["Outlook Express", "mail", 800, 555],
+      pdf: [`${f?.name || "Document"} - Document Reader`, "text", 740, 610],
+      media: [
+        `${f?.name || "Media"} - Windows Media Player`,
+        "sound",
+        500,
+        390,
+      ],
+      sounds: ["Sounds — Control Panel", "sound", 560, 480],
+      minesweeper: ["Minesweeper", "minesweeper", 390, 490],
+      solitaire: ["Solitaire", "cards", 820, 600],
+      pinball: ["Room 404 Pinball", "pinball", 570, 680],
     };
     const [title, icon, width, height] = info[app];
-    const id =
-      app === "notepad" || app === "image"
-        ? `${app}-${opts.fileId || "untitled"}`
-        : app;
+    const id = ["notepad", "image", "word", "pdf", "media"].includes(app)
+      ? `${app}-${opts.fileId || "untitled"}`
+      : app;
     const n = state.windows.length % 5;
     const maxX = Math.max(0, window.innerWidth - width),
       maxY = Math.max(0, window.innerHeight - height - 36);
@@ -307,7 +397,21 @@ export function OSProvider({ children }: { children: ReactNode }) {
         title,
         icon,
         ...opts,
-        draft: app === "notepad" ? f?.content || "" : undefined,
+        draft:
+          app === "notepad"
+            ? f?.content || ""
+            : app === "word"
+              ? f?.content ||
+                JSON.stringify({
+                  text: "",
+                  font: "Times New Roman",
+                  size: 16,
+                  bold: false,
+                  italic: false,
+                  underline: false,
+                  align: "left",
+                })
+              : undefined,
         x: Math.min(
           maxX,
           Math.max(108, (window.innerWidth - width) / 2 - 55 + n * 25),
@@ -329,11 +433,19 @@ export function OSProvider({ children }: { children: ReactNode }) {
         id,
         patch: { folderId: opts.folderId || "docs", title },
       });
+    if (app === "mail") beep("mail");
+    if (app === "mail" && opts.fileId)
+      dispatch({ type: "patch", id, patch: { fileId: opts.fileId } });
   }
   function openFile(id: string) {
     const f = state.files.find((f) => f.id === id);
     if (!f || f.deleted) return;
     if (f.type === "folder") openApp("explorer", { folderId: id });
+    else if (f.type === "game" && f.game) openApp(f.game);
+    else if (f.type === "document") openApp("word", { fileId: id });
+    else if (f.type === "mail") openApp("mail", { fileId: id });
+    else if (f.type === "pdf") openApp("pdf", { fileId: id });
+    else if (f.type === "audio") openApp("media", { fileId: id });
     else if (f.type === "text") {
       openApp("notepad", { fileId: id });
       if (id === "readme" || id === "confession")
@@ -399,10 +511,10 @@ export function OSProvider({ children }: { children: ReactNode }) {
   }
   function closeWindow(w: Win) {
     const f = state.files.find((f) => f.id === w.fileId);
-    if (w.app === "notepad" && w.draft !== (f?.content || ""))
+    if (windowIsDirty(w, state.files))
       setDialog({
-        title: "Notepad",
-        icon: "text",
+        title: w.app === "word" ? "Microsoft Word" : "Notepad",
+        icon: w.app === "word" ? "word" : "text",
         text: (
           <>
             The text in {f?.name || "Untitled"} has changed.
@@ -422,10 +534,10 @@ export function OSProvider({ children }: { children: ReactNode }) {
                 dispatch({
                   type: "file",
                   file: {
-                    id: "user-note",
+                    id: w.app === "word" ? "user-word" : "user-note",
                     parentId: "docs",
-                    name: "Untitled.txt",
-                    type: "text",
+                    name: w.app === "word" ? "Document1.doc" : "Untitled.txt",
+                    type: w.app === "word" ? "document" : "text",
                     content: w.draft || "",
                     modifiedAt: "2002-10-31",
                   },
@@ -458,6 +570,7 @@ export function OSProvider({ children }: { children: ReactNode }) {
         {
           label: "Reset",
           action: () => {
+            systemSounds.stop();
             try {
               localStorage.removeItem(STORAGE_KEY);
             } catch {
@@ -489,17 +602,15 @@ export function OSProvider({ children }: { children: ReactNode }) {
           label: "OK",
           primary: true,
           action: () => {
-            const dirty = state.windows.find(
-              (w) =>
-                w.app === "notepad" &&
-                w.draft !==
-                  (state.files.find((f) => f.id === w.fileId)?.content || ""),
+            const dirty = state.windows.find((w) =>
+              windowIsDirty(w, state.files),
             );
             if (dirty) {
               closeWindow(dirty);
               return;
             }
             setDialog(null);
+            beep("shutdown");
             setPhase("off");
           },
         },
@@ -509,14 +620,7 @@ export function OSProvider({ children }: { children: ReactNode }) {
   }
   useEffect(() => {
     function before(e: BeforeUnloadEvent) {
-      if (
-        state.windows.some(
-          (w) =>
-            w.app === "notepad" &&
-            w.draft !==
-              (state.files.find((f) => f.id === w.fileId)?.content || ""),
-        )
-      ) {
+      if (state.windows.some((w) => windowIsDirty(w, state.files))) {
         e.preventDefault();
       }
     }
@@ -539,6 +643,7 @@ export function OSProvider({ children }: { children: ReactNode }) {
         reset,
         shutdown,
         beep,
+        unlockAudio: () => systemSounds.unlock(),
         storageOK,
       }}
     >

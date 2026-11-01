@@ -3,8 +3,8 @@ import { Rnd } from "react-rnd";
 import { Application } from "./apps";
 import { Icon } from "./icons";
 import type { IconName } from "./icons";
-import { OSProvider, useOS } from "./store";
-import type { Win } from "./store";
+import { OSProvider, useOS, windowIsDirty } from "./store";
+import type { AppKind, Win } from "./store";
 
 export default function App() {
   return (
@@ -29,7 +29,8 @@ function Computer() {
   );
 }
 function BootScreen() {
-  const { phase, setPhase, openApp, beep } = useOS();
+  const { phase, setPhase, openApp, beep, state, dispatch, unlockAudio } =
+    useOS();
   const [lines, setLines] = useState(0);
   function done() {
     setPhase("desktop");
@@ -68,7 +69,13 @@ function BootScreen() {
           Owner: Rohan · Second year · Room 404
         </p>
         {phase === "power" ? (
-          <button className="power-button" onClick={() => setPhase("boot")}>
+          <button
+            className="power-button"
+            onClick={() => {
+              unlockAudio();
+              setPhase("boot");
+            }}
+          >
             <span className="power-indicator" /> Power on{" "}
             <span aria-hidden="true">↵</span>
           </button>
@@ -81,6 +88,18 @@ function BootScreen() {
             )}
             <button onClick={done}>Skip boot →</button>
           </div>
+        )}
+        {phase === "power" && (
+          <button
+            className="boot-sound-toggle"
+            aria-pressed={state.sound}
+            onClick={() =>
+              dispatch({ type: "settings", key: "sound", value: !state.sound })
+            }
+          >
+            Startup sound: {state.sound ? "ON" : "OFF"} · click to{" "}
+            {state.sound ? "mute" : "enable"}
+          </button>
         )}
       </div>
       <footer className="boot-footer">
@@ -99,7 +118,7 @@ function BootScreen() {
   );
 }
 function ShutdownScreen() {
-  const { setPhase } = useOS();
+  const { setPhase, beep, unlockAudio } = useOS();
   return (
     <main className="shutdown-screen">
       <Icon name="computer" size={60} />
@@ -109,7 +128,15 @@ function ShutdownScreen() {
         you were studying.
       </h1>
       <p>Good night, Room 404.</p>
-      <button onClick={() => setPhase("desktop")}>Restart</button>
+      <button
+        onClick={() => {
+          unlockAudio();
+          beep("startup");
+          setPhase("desktop");
+        }}
+      >
+        Restart
+      </button>
     </main>
   );
 }
@@ -120,15 +147,33 @@ const desktopIcons: { id: string; label: string; icon: IconName }[] = [
   { id: "browser", label: "Internet Explorer", icon: "browser" },
   { id: "bin", label: "Recycle Bin", icon: "bin" },
   { id: "readme", label: "README_FIRST.txt", icon: "text" },
+  { id: "my-pictures", label: "My Pictures", icon: "image" },
+  { id: "word", label: "Microsoft Word", icon: "word" },
+  { id: "paint", label: "Paint", icon: "paint" },
+  { id: "calculator", label: "Calculator", icon: "calculator" },
+  { id: "mail", label: "Outlook Express", icon: "mail" },
+  { id: "games", label: "Games", icon: "cards" },
+  { id: "sounds", label: "Sounds", icon: "sound" },
 ];
 function Desktop() {
   const { state, openApp, openFile, hint, storageOK } = useOS();
   const [selected, setSelected] = useState("");
   const [start, setStart] = useState(false);
   function open(id: string) {
-    if (id === "computer" || id === "docs")
+    if (["computer", "docs", "games", "my-pictures"].includes(id))
       openApp("explorer", { folderId: id });
-    else if (id === "browser" || id === "bin") openApp(id);
+    else if (
+      [
+        "browser",
+        "bin",
+        "word",
+        "paint",
+        "calculator",
+        "mail",
+        "sounds",
+      ].includes(id)
+    )
+      openApp(id as AppKind);
     else openFile(id);
   }
   useEffect(() => {
@@ -224,8 +269,7 @@ function WindowFrame({ win }: { win: Win }) {
     height = Math.min(win.height, vh);
   const x = Math.max(0, Math.min(win.x, vw - width)),
     y = Math.max(0, Math.min(win.y, vh - height));
-  const file = state.files.find((f) => f.id === win.fileId);
-  const dirty = win.app === "notepad" && win.draft !== (file?.content || "");
+  const dirty = windowIsDirty(win, state.files);
   useEffect(() => {
     if (!narrow && (win.x !== x || win.y !== y))
       dispatch({ type: "patch", id: win.id, patch: { x, y } });
@@ -345,7 +389,10 @@ function Taskbar({
         className={`start-button ${start ? "pressed" : ""}`}
         aria-expanded={start}
         aria-controls="start-menu"
-        onClick={() => setStart(!start)}
+        onClick={() => {
+          beep("click");
+          setStart(!start);
+        }}
       >
         <Icon name="windows" size={24} />
         <strong>Start</strong>
@@ -394,7 +441,6 @@ function Taskbar({
           aria-pressed={state.sound}
           onClick={() => {
             dispatch({ type: "settings", key: "sound", value: !state.sound });
-            if (state.sound) beep();
           }}
         >
           <Icon name="sound" size={17} />
@@ -419,7 +465,7 @@ function Taskbar({
   );
 }
 function StartMenu({ onClose }: { onClose: () => void }) {
-  const { state, dispatch, openApp, hint, reset, shutdown } = useOS();
+  const { state, dispatch, openApp, hint, reset, shutdown, beep } = useOS();
   const [submenu, setSubmenu] = useState("");
   const ref = useRef<HTMLDivElement>(null);
   useEffect(() => {
@@ -431,10 +477,20 @@ function StartMenu({ onClose }: { onClose: () => void }) {
   }
   function row(label: string, icon: IconName, fn: () => void, arrow = false) {
     return (
-      <button className="start-row" onClick={fn}>
+      <button
+        className="start-row"
+        onClick={() => {
+          beep("click");
+          fn();
+        }}
+      >
         <Icon name={icon} size={28} />
         <span>{label}</span>
-        {arrow && <span className="menu-arrow">▸</span>}
+        {arrow && (
+          <span className="menu-arrow" aria-hidden="true">
+            ▸
+          </span>
+        )}
       </button>
     );
   }
@@ -456,9 +512,47 @@ function StartMenu({ onClose }: { onClose: () => void }) {
             )}
             {submenu === "programs" && (
               <div className="submenu window">
+                <button className="submenu-back" onClick={() => setSubmenu("")}>
+                  ← Start menu
+                </button>
+                {row("Microsoft Word", "word", () =>
+                  act(() => openApp("word")),
+                )}
+                {row("Paint", "paint", () => act(() => openApp("paint")))}
+                {row("Calculator", "calculator", () =>
+                  act(() => openApp("calculator")),
+                )}
                 {row("Notepad", "text", () => act(() => openApp("notepad")))}
                 {row("Internet Explorer", "browser", () =>
                   act(() => openApp("browser")),
+                )}
+                {row("Outlook Express", "mail", () =>
+                  act(() => openApp("mail")),
+                )}
+              </div>
+            )}
+          </div>
+          <div className="start-group">
+            {row(
+              "Games",
+              "cards",
+              () => setSubmenu(submenu === "games" ? "" : "games"),
+              true,
+            )}
+            {submenu === "games" && (
+              <div className="submenu window">
+                <button className="submenu-back" onClick={() => setSubmenu("")}>
+                  ← Start menu
+                </button>
+                {row("Minesweeper", "minesweeper", () =>
+                  act(() => openApp("minesweeper")),
+                )}
+                {row("Solitaire", "cards", () =>
+                  act(() => openApp("solitaire")),
+                )}
+                {row("Pinball", "pinball", () => act(() => openApp("pinball")))}
+                {row("Game collection", "folder", () =>
+                  act(() => openApp("explorer", { folderId: "games" })),
                 )}
               </div>
             )}
@@ -472,6 +566,9 @@ function StartMenu({ onClose }: { onClose: () => void }) {
             )}
             {submenu === "docs" && (
               <div className="submenu window">
+                <button className="submenu-back" onClick={() => setSubmenu("")}>
+                  ← Start menu
+                </button>
                 {row("My Documents", "folder", () =>
                   act(() => openApp("explorer", { folderId: "docs" })),
                 )}
@@ -487,6 +584,10 @@ function StartMenu({ onClose }: { onClose: () => void }) {
             )}
             {submenu === "settings" && (
               <div className="submenu window">
+                <button className="submenu-back" onClick={() => setSubmenu("")}>
+                  ← Start menu
+                </button>
+                {row("Sounds…", "sound", () => act(() => openApp("sounds")))}
                 <button
                   className="start-row"
                   onClick={() =>
@@ -529,10 +630,12 @@ function StartMenu({ onClose }: { onClose: () => void }) {
   );
 }
 function SystemDialog() {
-  const { dialog, setDialog } = useOS();
+  const { dialog, setDialog, beep } = useOS();
   const box = useRef<HTMLDivElement>(null);
   useEffect(() => {
     if (!dialog) return;
+    if (dialog.title !== "A note from Rohan")
+      beep(dialog.title === "Project evaluation" ? "error" : "notify");
     const trigger = document.activeElement as HTMLElement | null;
     box.current?.querySelector<HTMLButtonElement>(".default,button")?.focus();
     return () => {

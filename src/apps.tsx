@@ -5,6 +5,16 @@ import { useOS, folderPath } from "./store";
 import type { Win } from "./store";
 import type { VFile } from "./files";
 import { ramFile, receipt } from "./files";
+import {
+  Calculator,
+  DocumentReader,
+  Mail,
+  MediaPlayer,
+  Paint,
+  Sounds,
+  Word,
+} from "./accessories";
+import { Minesweeper, Pinball, Solitaire } from "./games";
 
 export function FileIcon({ file }: { file: VFile }) {
   return (
@@ -16,7 +26,19 @@ export function FileIcon({ file }: { file: VFile }) {
             ? "image"
             : file.type === "installer"
               ? "installer"
-              : "text"
+              : file.type === "document"
+                ? "word"
+                : file.type === "mail"
+                  ? "mail"
+                  : file.type === "audio"
+                    ? "sound"
+                    : file.type === "game"
+                      ? file.game === "solitaire"
+                        ? "cards"
+                        : file.game === "pinball"
+                          ? "pinball"
+                          : "minesweeper"
+                      : "text"
       }
     />
   );
@@ -39,6 +61,26 @@ export function Application({ win }: { win: Win }) {
       return <Welcome win={win} />;
     case "hint":
       return <Hints />;
+    case "word":
+      return <Word win={win} />;
+    case "paint":
+      return <Paint win={win} />;
+    case "calculator":
+      return <Calculator />;
+    case "mail":
+      return <Mail win={win} />;
+    case "pdf":
+      return <DocumentReader win={win} />;
+    case "media":
+      return <MediaPlayer win={win} />;
+    case "sounds":
+      return <Sounds />;
+    case "minesweeper":
+      return <Minesweeper />;
+    case "solitaire":
+      return <Solitaire />;
+    case "pinball":
+      return <Pinball />;
   }
 }
 export function MenuBar({ children }: { children: React.ReactNode }) {
@@ -114,6 +156,8 @@ function Explorer({ win }: { win: Win }) {
         <button onClick={() => nav("docs")}>My Documents</button>
         <button onClick={() => nav("pictures")}>Pictures</button>
         <button onClick={() => nav("downloads")}>Downloads</button>
+        <button onClick={() => nav("archive1998")}>1998</button>
+        <button onClick={() => nav("games")}>Games</button>
       </MenuBar>
       <div className="toolbar">
         <button
@@ -177,6 +221,24 @@ function Explorer({ win }: { win: Win }) {
           >
             <Icon name="folder" size={16} /> Downloads
           </button>
+          {[
+            ["archive1998", "1998", 3],
+            ["my-pictures", "My Pictures", 3],
+            ["music", "My Music", 3],
+            ["mail-folder", "Mail", 3],
+            ["games", "Games", 2],
+            ["windows-folder", "Windows", 2],
+            ["media-folder", "Media", 3],
+          ].map(([id, name, level]) => (
+            <button
+              key={id}
+              className={`tree-level-${level} ${folder === id ? "tree-active" : ""}`}
+              onClick={() => nav(String(id))}
+            >
+              <Icon name="folder" size={16} />
+              {name}
+            </button>
+          ))}
           <div className="folder-aside">
             {folder === "pictures" ? (
               <>
@@ -335,20 +397,27 @@ function Notepad({ win }: { win: Win }) {
 }
 
 const HOME = "http://rohan.test/";
-const SEARCH = "http://search.test/";
+const SEARCH = "http://google.test/";
 const DOWNLOAD = "http://downloads.test/ram";
 function normalize(address: string) {
   let a = address.trim();
   if (!/^https?:\/\//i.test(a)) a = "http://" + a;
   try {
     const u = new URL(a);
+    if (
+      ["search.test", "google.com", "www.google.com", "google.test"].includes(
+        u.hostname,
+      )
+    )
+      u.hostname = "google.test";
     return `http://${u.hostname}${u.pathname}${u.search}`;
   } catch {
     return a;
   }
 }
 function RetroBrowser() {
-  const { openFile, openApp, state, dispatch } = useOS();
+  const { openFile, openApp, state, dispatch, beep } = useOS();
+  const [connected, setConnected] = useState(false);
   const [trail, setTrail] = useState([HOME]);
   const [index, setIndex] = useState(0);
   const [address, setAddress] = useState(HOME);
@@ -359,6 +428,7 @@ function RetroBrowser() {
   const route = current.split("?")[0];
   function navigate(url: string) {
     const next = normalize(url);
+    if (![HOME, SEARCH, DOWNLOAD].includes(next.split("?")[0])) beep("error");
     setTrail((t) => [...t.slice(0, index + 1), next]);
     setIndex(index + 1);
     setAddress(next);
@@ -430,6 +500,15 @@ function RetroBrowser() {
         <div className="ie-toolbar-logo">
           <Icon name="windows" size={27} />
         </div>
+        <button
+          onClick={() => {
+            setConnected(true);
+            beep("modem");
+          }}
+          aria-label="Play dial-up modem"
+        >
+          Dial-up
+        </button>
       </div>
       <form
         className="address-row"
@@ -579,10 +658,27 @@ function RetroBrowser() {
             </article>
           ) : route === SEARCH ? (
             <article className="search-page">
-              <div className="search-brand">
-                Seek<span>!</span>
+              <div className="google-wordmark" aria-label="Google!">
+                {["G", "o", "o", "g", "l", "e", "!"].map((letter, i) => (
+                  <span
+                    key={i}
+                    style={{
+                      color: [
+                        "#163da8",
+                        "#c92a21",
+                        "#e8b000",
+                        "#163da8",
+                        "#138337",
+                        "#c92a21",
+                        "#163da8",
+                      ][i],
+                    }}
+                  >
+                    {letter}
+                  </span>
+                ))}
               </div>
-              <p>Your gateway to a very small World Wide Web.</p>
+              <p>Search the web using Google!</p>
               <form
                 onSubmit={(e) => {
                   e.preventDefault();
@@ -595,9 +691,9 @@ function RetroBrowser() {
                   onChange={(e) => setQuery(e.target.value)}
                 />
                 <div>
-                  <button type="submit">Search the Web</button>
+                  <button type="submit">Google Search</button>
                   <button type="button" onClick={() => navigate(HOME)}>
-                    I’m Feeling Hopeful
+                    I’m feeling lucky
                   </button>
                 </div>
               </form>
@@ -626,14 +722,59 @@ function RetroBrowser() {
                   <p>Why buy hardware when you can click a button?</p>
                 </section>
               ) : (
-                <div className="search-directory">
-                  <Link to={HOME}>Student homepages</Link> |{" "}
-                  <Link to={DOWNLOAD}>Computer upgrades</Link>
-                </div>
+                <>
+                  <p className="google-index">
+                    <em>
+                      Index contains ~25 million pages (soon to be much bigger)
+                    </em>
+                  </p>
+                  <div className="google-about">
+                    <button
+                      className="web-link"
+                      onClick={() => localSearch("About Google")}
+                    >
+                      About Google!
+                    </button>
+                  </div>
+                  <div className="google-directory">
+                    <div>
+                      Special searches
+                      <br />
+                      <button
+                        className="web-link"
+                        onClick={() => localSearch("Stanford University")}
+                      >
+                        Stanford Search
+                      </button>
+                      <br />
+                      <Link to={HOME}>Student homepages</Link>
+                    </div>
+                    <div>
+                      <button
+                        className="web-link"
+                        onClick={() => openApp("mail")}
+                      >
+                        Get Google! updates monthly
+                      </button>
+                      <br />
+                      <Link to={DOWNLOAD}>Computer upgrades</Link>
+                      <br />
+                      <button
+                        className="web-link"
+                        onClick={() =>
+                          openApp("explorer", { folderId: "archive1998" })
+                        }
+                      >
+                        Archive
+                      </button>
+                    </div>
+                  </div>
+                </>
               )}
               <footer>
                 This is a tiny offline web. Results are local and fictional.
-                <br />© 2002 Seek! (probably)
+                <br />
+                1998-style search archive · Classroom recreation
               </footer>
             </article>
           ) : route === DOWNLOAD ? (
@@ -717,9 +858,11 @@ function RetroBrowser() {
       </div>
       <div className="status-bar">
         <p className="status-bar-field">
-          {state.discoveries.includes("download")
-            ? "Done. A questionable decision has been made."
-            : "Done"}
+          {connected
+            ? "Connected at 56K. The web still fits on this computer."
+            : state.discoveries.includes("download")
+              ? "Done. A questionable decision has been made."
+              : "Done"}
         </p>
         <p className="status-bar-field">
           <Icon name="computer" size={14} /> Local intranet
@@ -730,13 +873,14 @@ function RetroBrowser() {
 }
 
 function RecycleBin() {
-  const { state, dispatch, openFile } = useOS();
+  const { state, dispatch, openFile, beep } = useOS();
   const [selected, setSelected] = useState("confession");
   const [restored, setRestored] = useState(false);
   const files = state.files.filter((f) => f.deleted);
   function restore() {
     const f = files.find((f) => f.id === selected);
     if (!f) return;
+    beep("recycle");
     dispatch({
       type: "file",
       file: { ...f, deleted: false, parentId: f.originalParent || "docs" },
@@ -820,6 +964,7 @@ function RecycleBin() {
 function ImageViewer({ win }: { win: Win }) {
   const { state } = useOS();
   const [fit, setFit] = useState(true);
+  const [dimensions, setDimensions] = useState("");
   const file = state.files.find((f) => f.id === win.fileId);
   return (
     <div className="application image-viewer">
@@ -833,13 +978,29 @@ function ImageViewer({ win }: { win: Win }) {
         <span className="toolbar-note">{file?.name}</span>
       </div>
       <div className={`image-canvas inset ${fit ? "fit" : ""}`}>
-        <img src={file?.asset} alt={file?.content} />
+        <img
+          src={file?.asset}
+          alt={file?.content}
+          onLoad={(e) =>
+            setDimensions(
+              e.currentTarget.naturalWidth +
+                " × " +
+                e.currentTarget.naturalHeight +
+                " pixels",
+            )
+          }
+        />
       </div>
       <div className="status-bar">
         <p className="status-bar-field">
-          {file?.id === "architecture"
-            ? "760 × 490 pixels · original schematic"
-            : "640 × 400 pixels · original illustration"}
+          {dimensions || file?.name}
+          {file?.credit
+            ? " · Source: supplied hackathon PDF"
+            : file?.id === "architecture"
+              ? " · Original schematic"
+              : file?.id === "hostel"
+                ? " · Original illustration"
+                : ""}
         </p>
         <p className="status-bar-field">{fit ? "Fit" : "100%"}</p>
       </div>
