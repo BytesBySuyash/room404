@@ -606,8 +606,7 @@ function RetroBrowser() {
                   <p>
                     Local results for{" "}
                     <strong>
-                      {results ??
-                        new URL(current).searchParams.get("q") ?? ""}
+                      {results ?? new URL(current).searchParams.get("q") ?? ""}
                     </strong>
                   </p>
                   <h3>

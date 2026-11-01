@@ -228,7 +228,9 @@ test("browser local search, address errors, back/forward, fake RAM download, can
   fireEvent.change(address, { target: { value: "unknown.test" } });
   fireEvent.click(screen.getByRole("button", { name: "Go", exact: true }));
   assert.ok(screen.getByText("The page cannot be displayed"));
-  fireEvent.click(within(browser).getByRole("button", { name: "← Back", exact: true }));
+  fireEvent.click(
+    within(browser).getByRole("button", { name: "← Back", exact: true }),
+  );
   assert.ok(screen.getByRole("button", { name: "Download 128 MB of RAM" }));
   fireEvent.click(screen.getByRole("button", { name: "Forward", exact: true }));
   assert.ok(screen.getByText("The page cannot be displayed"));
@@ -251,7 +253,10 @@ test("Recycle Bin restore, confession, shared image opening, final reveal and im
   open("My Documents");
   const explorer = windowNamed("My Documents");
   fireEvent.doubleClick(
-    within(explorer.querySelector('.file-grid')!).getByRole("button", { name: "Pictures", exact: true }),
+    within(explorer.querySelector(".file-grid")!).getByRole("button", {
+      name: "Pictures",
+      exact: true,
+    }),
   );
   const pictures = windowNamed("Pictures");
   fireEvent.doubleClick(

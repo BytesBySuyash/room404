@@ -41,14 +41,14 @@ Desktop icons and Explorer items open with a double-click, Enter, or a single to
 
 Before presenting: use **Start → Reset Experience** and confirm, then leave the power screen ready. Sound and CRT are optional and start off.
 
-| Time | Action | Presentation cue |
-| --- | --- | --- |
-| 0:00–0:20 | Power on; let boot finish or skip. | “We found a student's abandoned computer. His project review was tomorrow.” |
-| 0:20–0:40 | Read his note. | “His first request is that we delete the browser history. So naturally…” |
-| 0:40–1:15 | Open Internet Explorer. Show History, close its panel, follow Download More RAM. Download, double-click the file in Downloads, Install, then View receipt. | Pause on **RAM: 0 MB / Confidence: 128 MB**. |
-| 1:15–1:55 | Open Recycle Bin, Restore, Open restored file. Open My Documents → Pictures → architecture.bmp. Choose Submit anyway. | Pause on **USER → MAGIC → MARKS** and the final note. |
-| 1:55–2:20 | Close the final note. Show the drawing; save/reopen a short note, minimize it, and restore from the taskbar. | “The operating system works. His project remains a matter of interpretation.” |
-| 2:20–2:40 | Start → Shut Down → OK. | Let the shutdown screen deliver the final joke. |
+| Time      | Action                                                                                                                                                     | Presentation cue                                                              |
+| --------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------- |
+| 0:00–0:20 | Power on; let boot finish or skip.                                                                                                                         | “We found a student's abandoned computer. His project review was tomorrow.”   |
+| 0:20–0:40 | Read his note.                                                                                                                                             | “His first request is that we delete the browser history. So naturally…”      |
+| 0:40–1:15 | Open Internet Explorer. Show History, close its panel, follow Download More RAM. Download, double-click the file in Downloads, Install, then View receipt. | Pause on **RAM: 0 MB / Confidence: 128 MB**.                                  |
+| 1:15–1:55 | Open Recycle Bin, Restore, Open restored file. Open My Documents → Pictures → architecture.bmp. Choose Submit anyway.                                      | Pause on **USER → MAGIC → MARKS** and the final note.                         |
+| 1:55–2:20 | Close the final note. Show the drawing; save/reopen a short note, minimize it, and restore from the taskbar.                                               | “The operating system works. His project remains a matter of interpretation.” |
+| 2:20–2:40 | Start → Shut Down → OK.                                                                                                                                    | Let the shutdown screen deliver the final joke.                               |
 
 For independent exploration, point judges to **Start → Help**. The story can be opened out of order. Rohan's restored note also explains where he went: the night bus home to his mother's cooking.
 
