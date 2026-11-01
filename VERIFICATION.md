@@ -22,4 +22,6 @@ The component tests run React and the real application components against jsdom.
 
 No public GitHub repository has been created by this task. Local Git history is intact. A Pages deployment workflow and publication instructions are included in README.md. A localhost URL is a development convenience, not a valid hackathon live submission.
 
-Hosting was prepared in Sites, but **no deployment was completed**. Automatic approval review rejected the source/build upload because explicit authorization for that payload and destination had not been provided. The created Site has no published version. Publishing requires approval to upload the newly created application source and its production build to OpenAI Sites; the input PDF and pasted attachment are outside the application repository.
+Hosting was prepared in Sites, but **no deployment was completed**. Automatic approval review rejected the source/build upload because explicit authorization for that payload and destination had not been provided. The user then selected **“Keep the result local.”** The created Site has no published version; no further upload or publishing will be attempted under this request. The input PDF and pasted attachment are outside the application repository.
+
+Local delivery includes `room404-source.zip`, `room404-production.zip`, and `room404-history.bundle` in the parent directory. The Git bundle was verified to contain the complete history. Both temporary Vite servers were stopped at handoff; run `npm run dev` to start the application again.
