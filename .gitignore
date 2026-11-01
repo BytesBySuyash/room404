@@ -4,3 +4,4 @@ dist/
 *.local
 tmp/
 .openai/*.zip
+*.tsbuildinfo
